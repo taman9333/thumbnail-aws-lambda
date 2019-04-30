@@ -1,0 +1,57 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: v2-resize # NOTE: update this with your service name
+
+provider:
+  name: aws
+  runtime: ruby2.5
+  profile: serverless-admin
+  region: eu-central-1
+  timeout: 10
+  memorySize: 128
+  iamRoleStatements:
+   - Effect: "Allow"
+     Action:
+       - "s3:*"
+     Resource: "*"
+  environment:
+     THUMBNAIL_SIZE: "128"
+
+functions:
+  hello:
+    handler: handler.hello
+    events:
+      - s3:
+          bucket: ${self:custom.bucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: .png
+
+
+plugins:
+  - serverless-hooks-plugin
+custom:
+  bucket: taman-s3-thumbnail-generator
+  hooks:
+    package:initialize:
+      - docker run --rm -v `pwd`:`pwd` -w `pwd` lambci/lambda:build-ruby2.5 bundle install --path vendor/bundle
+      - npm install --save serverless-hooks-plugin
+
+# In case we need to upload thumbnails to bucket other than the one that was uploaded into
+# resources:
+#   Resources:
+#     ResizedImages:
+#       Type: AWS::S3::Bucket
+#       Properties:
+#         BucketName: thumbnail-images
